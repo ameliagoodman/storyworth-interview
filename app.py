@@ -88,7 +88,7 @@ def sms_reply():
         # send ack with link
         resp = MessagingResponse()
         resp.message(
-            'Noted! Visit [link] to view all of your entries.')
+            'Noted! Visit https://ameliagoodman.pythonanywhere.com/ to view all of your entries.')
         return str(resp)
 
 # take 10-digit phone number and turn it into our display format

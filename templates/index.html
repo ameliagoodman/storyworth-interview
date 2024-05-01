@@ -27,7 +27,7 @@
                 <div class="entry-row">
                     <div class="entry-date-container"><p class="entry-date">{{ entry.date }}</p></div>
                     <div class="entry-content-preview-container">
-                        <p class="entry-content-preview" id="content-{{entry.id}}">{{ entry.content | truncate(40, leeway=3) }}</p></div>
+                        <p class="entry-content-preview" id="content-{{entry.id}}">{{ entry.content | safe | truncate(40, leeway=3) }}</p></div>
                         <form class="view-more-form" action="/view_entry" method="post">
                             <input type="hidden" name="entry_id" value="{{entry.id}}">
                             <button class="view-more-btn" id="toggle-{{entry.id}}" type="submit" id="submit">View</button>
@@ -41,7 +41,7 @@
             <div class="entry-row">
                 <div class="entry-date-container"><p class="entry-date">{{ entry.date }}</p></div>
                 <div class="entry-content-preview-container">
-                    <p class="entry-content-preview" id="content-{{entry.id}}">{{ entry.content }}</p>
+                    <p class="entry-content-preview" id="content-{{entry.id}}">{{ entry.content | safe }}</p>
                 </div>
                 <form class="view-more-form" action="/get_diary" method="post">
                     <input type="hidden" name="phone" value="{{phone_number}}">

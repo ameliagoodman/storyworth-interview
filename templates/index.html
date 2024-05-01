@@ -72,7 +72,7 @@
                                     <div class="entry-date-container"><p class="entry-date">${formattedDate}</p></div>
                                     <div class="entry-content-preview-container">
                                         <p class="entry-content-preview" id="content-${e.id}" data-full-content=${e.content}>${formattedContent + (isTruncated ? '...' : '')}</p></div>
-                                    <button @click="toggleDetails" class="view-more-btn" id="toggle-${e.id}" onclick="toggleEntryDetails(${e.id}, '${e.content}', ${isTruncated})">${isTruncated ? 'View' : 'Less'}</button>
+                                    <button @click="toggleDetails" class="view-more-btn" id="toggle-${e.id}">View</button>
                                 </div>
                             `
                             entriesDiv.append(entryPreview)

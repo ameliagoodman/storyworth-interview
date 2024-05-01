@@ -6,89 +6,59 @@
     <link rel= "stylesheet" type= "text/css" 
     href= "{{ url_for('static',filename='style.css') }}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
-
     <title>My Storyworth Text Diary</title>
 </head>
 <body>
     <img src="{{url_for('static', filename='header-img.png')}}" id="header-img"/>
     <div id="phoneForm">
         <h1>Enter your phone number below to look up past diary entries</h1>
-        <form action="/get_entries" method="post" class="form" id="sendPhoneForm">
+        <form action="/get_diary" method="post" class="form" id="sendPhoneForm">
             <label class="label" for="phone">Your phone number</label>
-            <input type="text" id="phone" name="phone" placeholder="123-456-7890">
-            <p id="error-message" style="display: none;"></p>
+            <input type="text" id="phone" name="phone" placeholder="123-456-7890" value="{{ phone_number | default('') |format_phone }}">
+            {% if error_msg %}
+                <p id="error-message">{{error_msg}}</p>
+            {% endif %}
             <button type="submit" id="submit">View past entries</button>
         </form>
     </div>
-    <div id="entries" style="display:none"></div>
+    {% if entries %}
+        <div id="entries">
+            {% for entry in entries %}
+                <div class="entry-row">
+                    <div class="entry-date-container"><p class="entry-date">{{ entry.date }}</p></div>
+                    <div class="entry-content-preview-container">
+                        <p class="entry-content-preview" id="content-{{entry.id}}">{{ entry.content | truncate(40, leeway=3) }}</p></div>
+                        <form class="view-more-form" action="/view_entry" method="post">
+                            <input type="hidden" name="entry_id" value="{{entry.id}}">
+                            <button class="view-more-btn" id="toggle-{{entry.id}}" type="submit" id="submit">View</button>
+                        </form>
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% if entry %}
+        <div id="entries">
+            <div class="entry-row">
+                <div class="entry-date-container"><p class="entry-date">{{ entry.date }}</p></div>
+                <div class="entry-content-preview-container">
+                    <p class="entry-content-preview" id="content-{{entry.id}}">{{ entry.content }}</p>
+                </div>
+                <form class="view-more-form" action="/get_diary" method="post">
+                    <input type="hidden" name="phone" value="{{phone_number}}">
+                    <button class="view-more-btn">Back</button>
+                </form>
+            </div>
+        </div>
+    {% endif %}
 </body>
 <script>
-    function toggleEntryDetails(entryId, fullContent, isTruncated) {
-        const contentElement = document.getElementById('content-' + entryId);
-        const toggleButton = document.getElementById('toggle-' + entryId);
-
-        if (toggleButton.textContent === 'View') {
-            // Show full content
-            contentElement.innerText = fullContent;
-            toggleButton.textContent = 'Less';
-        } else {
-            // Show truncated content
-            contentElement.innerText = fullContent.substring(0, 40) + (fullContent.length > 40 ? '...' : '');
-            toggleButton.textContent = 'View';
-        }
-    }
     $(document).ready(function() {
         var phoneInput = $('#phone');
         phoneInput.on('input', function(e) {
-             // Replace non-digits, and format
+             // Replace non-digits and format to xxx-xxx-xxxx
             var x = e.target.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/);
             e.target.value = !x[2] ? x[1] : x[1] + '-' + x[2] + (x[3] ? '-' + x[3] : '');
         })
-        $('#sendPhoneForm').submit(function(event) {
-            event.preventDefault(); // prevent form submit
-            $.ajax({
-                url:'/get_entries',
-                method: 'POST',
-                data: $(this).serialize(),
-                dataType: 'json',
-                success: function(data) {
-                    $('#error-message').hide()
-                    $('#error-message').text()
-                    if (data.entries && data.entries.length > 0) {
-                        const entriesDiv = $('#entries');
-                        entriesDiv.empty();
-                        data.entries.map((e) => {
-                            const entryDate = new Date(e.date);
-                            const formattedDate = entryDate.toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                            });
-                            const formattedContent = e.content.substring(0, 40)
-                            let isTruncated = e.content.length > 40
-                            const entryPreview = `
-                                <div class="entry-row">
-                                    <div class="entry-date-container"><p class="entry-date">${formattedDate}</p></div>
-                                    <div class="entry-content-preview-container">
-                                        <p class="entry-content-preview" id="content-${e.id}" data-full-content=${e.content}>${formattedContent + (isTruncated ? '...' : '')}</p></div>
-                                    <button @click="toggleDetails" class="view-more-btn" id="toggle-${e.id}">View</button>
-                                </div>
-                            `
-                            entriesDiv.append(entryPreview)
-                        })
-                    }
-
-                    $('#entries').show()
-                },
-                error: function(err) {
-                    $('#error-message').text(err.responseJSON.error)
-                    $('#error-message').show()
-                    $('#entries').hide()
-                    $('#entries').innerHTML()
-                }
-            });
-        });
     });
 
 </script>

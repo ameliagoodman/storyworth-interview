@@ -134,9 +134,11 @@ h1 {
     line-height: 28px;
     color: #042A21;
 }
-
-.view-more-btn {
+.view-more-form {
+    display: flex;
     flex: .5;
+}
+.view-more-btn {
     color: #07777E;
     background-color: #ffffff;
     border: none;

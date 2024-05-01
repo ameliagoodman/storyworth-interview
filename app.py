@@ -1,9 +1,9 @@
-from flask import Flask, jsonify, render_template, request, redirect, url_for
+from flask import Flask, render_template, request
 import os
+import phonenumbers
 from dotenv import load_dotenv
 from twilio.rest import Client
 from twilio.twiml.messaging_response import MessagingResponse
-from random import randint
 from datetime import datetime
 from models import User, Entry, db, initialize_db
 from peewee import DoesNotExist
@@ -27,62 +27,83 @@ client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 def index():
     return render_template('index.html')
 
-@app.route('/send_code', methods=['POST'])
-def send_code():
-    phone = request.form['phone']
-    code = randint(000000, 999999)  # Generate a random 6-digit code
-    message = client.messages.create(
-        body=f"Your verification code is {code}",
-        from_=TWILIO_NUMBER,
-        to=phone
-    )
-    with db.atomic():
-        user, created = User.get_or_create(phone_number=phone.replace("-", ""))
-        user.verification_code = code
-        user.code_sent_at = datetime.now()
-        user.save()
-    return jsonify(success=True), 200
-
-@app.route('/get_entries', methods=['POST'])
-def get_entries():
+# given a phone number, get all text entries
+@app.route('/get_diary', methods=['POST'])
+def get_diary():
     phone_number = request.form['phone']
+
+    # clean & validate phone number
     phone_number = phone_number.replace("-", "")
-    phone_number = "+1"+phone_number
-    if len(phone_number) == 2:
-        return jsonify(error = "Please enter a phone number to begin"), 404
+    if not phone_number.startswith("+1"):
+        phone_number = "+1"+phone_number
+    try:
+        parsed_number = phonenumbers.parse(phone_number, None)
+        if not phonenumbers.is_valid_number(parsed_number):
+            return render_template('index.html', error_msg="Please enter a phone number to begin.")
+    except phonenumbers.phonenumberutil.NumberParseException:
+        return render_template('index.html', error_msg="Please enter a phone number to begin.")
+
     # Fetch entries from the database associated with the phone number
-    with db.atomic():
-        try:
-            user = User.get(phone_number=phone_number)
-            entries = user.entries
-            print(entries)
-        except DoesNotExist:
-            return jsonify(error = "We don't have any entries associated with this number. You can text us at +1-888-255-4551 to record your first entry."), 404
-    
+    try:
+        user = User.get(phone_number=phone_number)
+        entries = user.entries
+    except DoesNotExist:
+        return render_template('index.html', error_msg="We don't have any entries associated with this number. You can text us at +1-888-255-4551 to record your first entry.")
+
+    # format entries for display
     formatted_entries = []
     for entry in entries:
         escaped_content = html.escape(entry.content)
-        print(escaped_content)
-        formatted = {"id": entry.id, "content": escaped_content, "date": entry.created}
+        formatted_date = entry.created.strftime('%b %d, %Y')
+        formatted = {"id": entry.id, "content": escaped_content, "date": formatted_date}
         formatted_entries.append(formatted)
-    return jsonify(entries=formatted_entries), 200
+    return render_template('index.html', entries=formatted_entries, phone_number=phone_number)
 
+# given an entry ID, view entry details
+@app.route('/view_entry', methods=['POST'])
+def view_entry():
+    entry_id = request.form['entry_id']
+    try:
+        entry = Entry.get(id=entry_id)
+        user = entry.user
+    except DoesNotExist:
+        return render_template('index.html', error_msg="We're sorry--something went wrong.")
 
+    # format entry for display
+    escaped_content = html.escape(entry.content)
+    formatted_date = entry.created.strftime('%b %d, %Y at %I:%M%p')
+    formatted = {"id": entry.id, "content": escaped_content, "date": formatted_date}
+    return render_template('index.html', entry=formatted, phone_number=user.phone_number)
+
+# webhook exposed to twilio that saves any incoming messages to db
 @app.route('/sms', methods=['POST'])
 def sms_reply():
     from_number = request.form['From']
     body = request.form['Body']
-    print(from_number)
-    print(body)
     with db.atomic():
+        # get or create user associated to the phone number
         user, _ = User.get_or_create(phone_number=from_number)
-        new_entry = Entry.create(user=user, content=body)
+        # create a diary entry with their message
+        _ = Entry.create(user=user, content=body)
+        # send ack with link
         resp = MessagingResponse()
         resp.message(
             'Noted! Visit [link] to view all of your entries.')
         return str(resp)
-    return 'Number not recognized', 400
 
+# take 10-digit phone number and turn it into our display format
+def format_phone_for_display(phone):
+    if phone.startswith('+1'):
+        phone = phone[2:]
+    if len(phone) < 8:
+        return ''
+    formatted = f"{phone[:3]}-{phone[3:6]}-{phone[6:]}"
+    return formatted
+
+# make format_phone_for_display a jinja filter
+@app.template_filter('format_phone')
+def format_phone_filter(phone):
+    return format_phone_for_display(phone)
 
 if __name__ == '__main__':
     app.run(debug=True)

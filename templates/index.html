@@ -10,6 +10,7 @@
 </head>
 <body>
     <img src="{{url_for('static', filename='header-img.png')}}" id="header-img"/>
+    <!-- form to enter phone number to look up associated entries -->
     <div id="phoneForm">
         <h1>Enter your phone number below to look up past diary entries</h1>
         <form action="/get_diary" method="post" class="form" id="sendPhoneForm">
@@ -21,6 +22,7 @@
             <button type="submit" id="submit">View past entries</button>
         </form>
     </div>
+    <!-- iterate through entries and display in list -->
     {% if entries %}
         <div id="entries">
             {% for entry in entries %}
@@ -35,7 +37,8 @@
                 </div>
             {% endfor %}
         </div>
-        {% endif %}
+    {% endif %}
+    <!-- show an individual entry with details -->
     {% if entry %}
         <div id="entries">
             <div class="entry-row">

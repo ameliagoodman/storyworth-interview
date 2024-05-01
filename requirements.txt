@@ -1,0 +1,4 @@
+Flask>=2.2.2
+peewee>=3.17.3
+python-dotenv>=1.0.1
+twilio>=9.0.5

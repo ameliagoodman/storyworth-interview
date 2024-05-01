@@ -10,6 +10,8 @@ Run the virtual environment: `. <myenvname>/bin/activate`
 
 Install requirements.txt: `pip install -r requirements.txt`
 
+Copy the `.env-template` and fill it with your Twilio credentials.
+
 Run the app: `python3 app.py`
 
 ### Extras
